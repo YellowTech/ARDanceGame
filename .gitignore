@@ -38,14 +38,12 @@ ExportedObj/
 *.pidb
 *.booproj
 *.svd
-*.pdb
 *.mdb
 *.opendb
 *.VC.db
 
 # Unity3D generated meta files
 *.pidb.meta
-*.pdb.meta
 *.mdb.meta
 
 # Unity3D generated file on crash reports
@@ -58,3 +56,29 @@ sysinfo.txt
 # Crashlytics generated file
 crashlytics-build.properties
 
+
+# Custom
+Assets/Plugins
+
+# Packages
+/Packages/Microsoft.Azure.Kinect.Sensor.*
+/Packages/System.Buffers.*
+/Packages/System.Memory.*
+/Packages/System.Runtime.CompilerServices.Unsafe.*
+/Packages/System.Reflection.Emit.Lightweight.*
+/Packages/System.Numerics.Vectors.*
+
+# Moved files
+cudnn64_8.dll
+cudnn_cnn_infer64_8.dll
+cudnn_ops_infer64_8.dll
+onnxruntime.dll
+dnn_model_2_0_op11.onnx
+cublas64_11.dll
+cublasLt64_11.dll
+cudart64_110.dll
+cufft64_10.dll
+
+# Logs
+k4a.log
+kfa4b.log
