@@ -1,9 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using Communiction;
-using Communiction.Client;
-using Communiction.Server;
+using Communiction.Util;
 using System.Net;
 using System.Net.Sockets;
 using LiteNetLib;
@@ -88,6 +86,15 @@ namespace Communiction.Server {
 
         void INetEventListener.OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo) {
             Debug.Log("[S] Player disconnected: " + disconnectInfo.Reason);
+
+            //Debug.Log("[S] Restarting Server");
+            //netManager.Stop();
+            //netManager = new NetManager(this) {
+            //    AutoRecycle = true,
+            //    BroadcastReceiveEnabled = true,
+            //    IPv6Mode = IPv6Mode.Disabled,
+            //};
+            //netManager.Start(5000);
         }
 
         void INetEventListener.OnNetworkError(IPEndPoint endPoint, SocketError socketError) {
@@ -95,6 +102,7 @@ namespace Communiction.Server {
         }
 
         void INetEventListener.OnNetworkReceive(NetPeer peer, NetPacketReader reader, DeliveryMethod deliveryMethod) {
+            Debug.Log("[S] Received Packet from " + peer);
             byte packetType = reader.GetByte();
             if (packetType >= PacketTypesCount)
                 return;
@@ -120,8 +128,9 @@ namespace Communiction.Server {
         }
 
         void INetEventListener.OnNetworkReceiveUnconnected(IPEndPoint remoteEndPoint, NetPacketReader reader, UnconnectedMessageType messageType) {
-            if (messageType == UnconnectedMessageType.Broadcast && reader.GetInt() == 1) {
-                Debug.Log("[SERVER] Received discovery request. Send discovery response");
+            Debug.Log("[S] Received Unconnected Packet from " + remoteEndPoint + " as " + messageType);
+            if (messageType == UnconnectedMessageType.Broadcast) {
+                Debug.Log("[S] Received discovery request. Send discovery response");
                 NetDataWriter resp = new NetDataWriter();
                 resp.Put(2);
                 netManager.SendUnconnectedMessage(resp, remoteEndPoint);

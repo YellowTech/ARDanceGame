@@ -10,63 +10,69 @@ using LiteNetLib.Utils;
 using UnityEngine;
 using UnityEngine.UI;
 using Random = System.Random;
+using PoseTeacher;
 
 namespace Communiction.Client {
     public class Client : MonoBehaviour, INetEventListener {
 
         private Action<DisconnectInfo> _onDisconnected;
 
-        private NetManager _netManager;
-        private NetDataWriter _writer;
-        private NetPacketProcessor _packetProcessor;
+        private NetManager netManager;
+        private NetDataWriter writer;
+        private NetPacketProcessor packetProcessor;
 
         private string userName;
         //private ServerState cachedServerState;
         private uint _lastServerTick;
-        private NetPeer _server;
-        private int _ping;
+        private NetPeer server;
+        private int ping;
         private float discoveryCooldown = 0f;
 
         public bool joined = false;
 
+        // use to test local only
+        public bool fake = false;
+
         // return if we have a connected server
-        public static bool Connected => instance == null ? false : instance._netManager.FirstPeer != null && instance._netManager.FirstPeer.ConnectionState == ConnectionState.Connected;
-        public static Client instance;
+        public static bool Connected => Instance == null ? false : Instance.fake || Instance.netManager.FirstPeer != null && Instance.netManager.FirstPeer.ConnectionState == ConnectionState.Connected;
+        public static String ServerName => Instance == null ? "None" : Instance.fake ? "Fake Server" : Instance.netManager.FirstPeer != null && Instance.netManager.FirstPeer.ConnectionState == ConnectionState.Connected ? Instance.netManager.FirstPeer.EndPoint.ToString() : "None";
+        public static Client Instance;
 
         public uint ClientTick = 0;
 
         // Start Client
         private void Awake() {
             // Implement as singleton, destroy if there is another client running
-            if (instance != null) {
+            if (Instance != null) {
                 Destroy(this);
             } else {
                 // Start the client
                 DontDestroyOnLoad(gameObject);
-                instance = this;
+                Instance = this;
                 Random r = new Random();
                 userName = Environment.MachineName + " " + r.Next(100000);
-                _writer = new NetDataWriter();
+                writer = new NetDataWriter();
 
                 // Register all packet types and nested types
-                _packetProcessor = new NetPacketProcessor();
-                _packetProcessor.RegisterNestedType<VectorPacket>();
+                packetProcessor = new NetPacketProcessor();
+                packetProcessor.RegisterNestedType<VectorPacket>();
+                packetProcessor.SubscribeReusable<EvaluatePoseResponsePacket>(OnEvaluationResponse);
                 //_packetProcessor.SubscribeReusable<JoinAcceptPacket>(OnJoinAccept);
                 
                 // create and start the client manager
-                _netManager = new NetManager(this) {
+                netManager = new NetManager(this) {
                     AutoRecycle = true,
                     IPv6Mode = IPv6Mode.Disabled,
                     UnconnectedMessagesEnabled = true,
                     EnableStatistics = true
                 };
-                _netManager.Start();
+                netManager.Start();
             }
         }
 
         private void Update() {
             // Handle all received packets
-            _netManager.PollEvents();
+            netManager.PollEvents();
 
             // check if connected to a server
             if (Connected) {
@@ -74,10 +80,11 @@ namespace Communiction.Client {
                 //Debug.Log( "Bytes sent: " + Util.Util.ConvertNumber(_netManager.Statistics.BytesSent));
                 //Debug.Log("Bytes received: " + Util.Util.ConvertNumber(_netManager.Statistics.BytesReceived));
             } else {
-                // Not connected
-                if (discoveryCooldown + 0.3f < Time.time) { // Cooldown for discovery broadcast
+                // Not connected and not fake
+                if (!fake && discoveryCooldown + 1f < Time.time) { // Cooldown for discovery broadcast
                     Debug.Log("[CLIENT] Sending new Broadcast message");
-                    _netManager.SendBroadcast(new byte[] { 1 }, 5000);
+                    netManager.SendBroadcast(new byte[] { 1 }, 5000);
+                    
                     discoveryCooldown = Time.time;
                 }
             }
@@ -88,7 +95,7 @@ namespace Communiction.Client {
         }
 
         private void OnDestroy() {
-            _netManager.Stop();
+            netManager.Stop();
         }
 
         //private void OnServerState() {
@@ -107,31 +114,31 @@ namespace Communiction.Client {
 
         // send packet of packettype
         public void SendPacketSerializable<T>(PacketType type, T packet, DeliveryMethod deliveryMethod) where T : INetSerializable {
-            if (_server == null)
+            if (server == null)
                 return;
-            _writer.Reset();
-            _writer.Put((byte)type);
-            packet.Serialize(_writer);
-            _server.Send(_writer, deliveryMethod);
+            writer.Reset();
+            writer.Put((byte)type);
+            packet.Serialize(writer);
+            server.Send(writer, deliveryMethod);
         }
 
         // send auto serializable
         public void SendPacket<T>(T packet, DeliveryMethod deliveryMethod) where T : class, new() {
-            if (_server == null)
+            if (server == null)
                 return;
-            _writer.Reset();
-            _writer.Put((byte)PacketType.Serialized);
-            _packetProcessor.Write(_writer, packet);
-            _server.Send(_writer, deliveryMethod);
+            writer.Reset();
+            writer.Put((byte)PacketType.Serialized);
+            packetProcessor.Write(writer, packet);
+            server.Send(writer, deliveryMethod);
         }
 
         void INetEventListener.OnPeerConnected(NetPeer peer) {
             Debug.Log("[C] Connected to server: " + peer.EndPoint);
-            _server = peer;
+            server = peer;
         }
 
         void INetEventListener.OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo) {
-            _server = null;
+            server = null;
             Debug.Log("[C] Disconnected from server: " + disconnectInfo.Reason);
             if (_onDisconnected != null) {
                 _onDisconnected(disconnectInfo);
@@ -154,7 +161,7 @@ namespace Communiction.Client {
                     //OnServerState();
                     break;
                 case PacketType.Serialized:
-                    _packetProcessor.ReadAllPackets(reader);
+                    packetProcessor.ReadAllPackets(reader);
                     break;
                 default:
                     Debug.Log("[C] Unhandled packet: " + pt);
@@ -165,20 +172,24 @@ namespace Communiction.Client {
 
         // eg. broadcast answers
         void INetEventListener.OnNetworkReceiveUnconnected(IPEndPoint remoteEndPoint, NetPacketReader reader, UnconnectedMessageType messageType) {
-            if (messageType == UnconnectedMessageType.BasicMessage && _netManager.ConnectedPeersCount == 0 && reader.GetInt() == 2) {
+            if (messageType == UnconnectedMessageType.BasicMessage && netManager.ConnectedPeersCount == 0 && reader.GetInt() == 2) {
                 Debug.Log("[CLIENT] Received discovery response. Connecting to: " + remoteEndPoint);
-                _netManager.Connect(remoteEndPoint, "itsdancetime");
+                netManager.Connect(remoteEndPoint, "itsdancetime");
             }
         }
 
         void INetEventListener.OnNetworkLatencyUpdate(NetPeer peer, int latency) {
-            _ping = latency;
+            ping = latency;
             //Debug.Log("Ping = " + _ping);
-            transform.name = "Clientlogic Ping = " + _ping;
+            transform.name = "Clientlogic Ping = " + ping;
         }
 
         void INetEventListener.OnConnectionRequest(ConnectionRequest request) {
             request.Reject();
+        }
+
+        private void OnEvaluationResponse(EvaluatePoseResponsePacket pkt) {
+            ClientManager.Instance.ScoreResponse(pkt.RequestId, pkt.Score);
         }
     }
 }

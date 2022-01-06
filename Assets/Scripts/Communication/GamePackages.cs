@@ -1,7 +1,7 @@
 using System;
 using LiteNetLib.Utils;
 
-namespace Communiction.Server {
+namespace Communiction.Util {
     public enum PacketType : byte {
         ServerState,
         Serialized,
@@ -16,6 +16,7 @@ namespace Communiction.Server {
 
     // Request to evaluate pose with index
     public class EvaluatePoseRequestPacket {
+        public int trackNr { get; set; }
         public int PoseIndex { get; set; }
         public int RequestId { get; set; }
     }
