@@ -18,8 +18,7 @@ public class DanceEditor : MonoBehaviour {
     public Task indicatorTask;
 
     public DancePerformanceScriptableObject DancePerformanceObject;
-    public GameObject AvatarContainerObject;
-    private AvatarContainer avatar;
+    public AvatarDisplay avatar;
 
     // Editor
     public int totalFrames;
@@ -149,9 +148,6 @@ public class DanceEditor : MonoBehaviour {
         this.frameRenderes = frameDisplay.GetComponentsInChildren<Renderer>();
         Debug.Log("Renderers: " + frameRenderes.Length);
 
-        avatar = new AvatarContainer(AvatarContainerObject);
-        avatar.ChangeActiveType(AvatarType.ROBOT);
-
         if (playing)
         {
             audioSource.Play();
@@ -171,7 +167,7 @@ public class DanceEditor : MonoBehaviour {
         {
             float timeOffset = audioSource.time - danceData.poses[currentId].timestamp; //  currentId * timestep;//
             //Debug.Log(String.Format("time: {0}    stamp: {1}    offset: {2}", audioSource.time, danceData.poses[currentId].timestamp, timeOffset));
-            avatar.MovePerson(danceData.GetInterpolatedPose(currentId, out currentId, timeOffset).toPoseData());
+            avatar.SetPose(danceData.GetInterpolatedPose(currentId, out currentId, timeOffset).toPoseData());
             SetSliderPosition(currentId, timeOffset);
         }
 
