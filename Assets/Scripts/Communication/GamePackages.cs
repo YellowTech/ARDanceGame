@@ -24,7 +24,7 @@ namespace Communiction.Util {
     // Reponse to an evaluated pose request
     public class EvaluatePoseResponsePacket {
         public int RequestId { get; set; }
-        public int Score { get; set; }
+        public float Score { get; set; }
         // public int faultyJoint eg for feedback on where the error was
     }
 

@@ -64,10 +64,15 @@ namespace PoseTeacher {
                 display.SetPose(interpolatedPose.toPoseData());
 
                 // if next goal is within scoring distance
-                float timeToNextGoal = goals[currentGoal] - songTime;
-                if (timeToNextGoal < 1f) {
-                    Debug.Log("Send Request");
-                    sendGoalRequest(currentGoal++);
+                // check if end is reached
+                if (currentGoal < goals.Count) {
+                    float timeToNextGoal = goals[currentGoal] - songTime;
+                    GoalType type = currentPerformance.goalDuration[currentGoal] > 0f ? GoalType.MOTION : GoalType.POSE;
+                    if (type == GoalType.MOTION && timeToNextGoal < ServerManager.MotionWindow ||
+                        type == GoalType.POSE && timeToNextGoal < ServerManager.poseSurrounding) {
+                        Debug.Log("Send Request");
+                        sendGoalRequest(currentGoal++);
+                    }
                 }
             }
         }

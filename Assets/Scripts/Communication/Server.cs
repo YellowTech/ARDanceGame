@@ -7,9 +7,11 @@ using System.Net.Sockets;
 using LiteNetLib;
 using LiteNetLib.Utils;
 using System;
+using PoseTeacher;
 
 namespace Communiction.Server {
     public class Server : MonoBehaviour, INetEventListener {
+        public static Server Instance;
         private NetManager netManager;
         private NetPacketProcessor packetProcessor;
 
@@ -29,24 +31,38 @@ namespace Communiction.Server {
         }
 
         private void Awake() {
-            DontDestroyOnLoad(gameObject);
-            packetProcessor = new NetPacketProcessor();
-            //serverPlayerManager = new ServerPlayerManager(this);
-            //serverEntityManager = new ServerEntityManager(this);
+            // Implement as singleton, destroy if there is another server running
+            if (Instance != null) {
+                Destroy(this);
+            } else {
+                Instance = this;
 
-            //register auto serializable Vector
-            //_packetProcessor.RegisterNestedType((w, v) => w.Put(v), r => r.GetVectorPacket());
-            packetProcessor.RegisterNestedType<VectorPacket>();
+                DontDestroyOnLoad(gameObject);
+                packetProcessor = new NetPacketProcessor();
+                //serverPlayerManager = new ServerPlayerManager(this);
+                //serverEntityManager = new ServerEntityManager(this);
 
-            //register auto serializable PlayerStatePacket
-            //packetProcessor.RegisterNestedType<PlayerStatePacket>();
-            //packetProcessor.SubscribeNetSerializable<EntityStatePacket, NetPeer>(OnEntityStateReceived);
-            //packetProcessor.SubscribeReusable<JoinPacket, NetPeer>(OnJoinReceived);
-            netManager = new NetManager(this) {
-                AutoRecycle = true,
-                BroadcastReceiveEnabled = true,
-                IPv6Mode = IPv6Mode.Disabled,
-            };
+                //register auto serializable Vector
+                //_packetProcessor.RegisterNestedType((w, v) => w.Put(v), r => r.GetVectorPacket());
+                packetProcessor.RegisterNestedType<VectorPacket>();
+
+
+                //register auto serializable PlayerStatePacket
+                packetProcessor.SubscribeReusable<EvaluatePoseRequestPacket>(OnEvaluationRequest);
+                //packetProcessor.RegisterNestedType<PlayerStatePacket>();
+                //packetProcessor.SubscribeNetSerializable<EntityStatePacket, NetPeer>(OnEntityStateReceived);
+                //packetProcessor.SubscribeReusable<JoinPacket, NetPeer>(OnJoinReceived);
+                netManager = new NetManager(this) {
+                    AutoRecycle = true,
+                    BroadcastReceiveEnabled = true,
+                    IPv6Mode = IPv6Mode.Disabled,
+                };
+
+            }
+        }
+
+        private void OnEvaluationRequest(EvaluatePoseRequestPacket pkt) {
+            ServerManager.Instance.AddGoal(pkt.trackNr, pkt.PoseIndex, pkt.RequestId);
         }
 
         private void Start() {
@@ -78,6 +94,15 @@ namespace Communiction.Server {
             cachedWriter.Put((byte)PacketType.Serialized);
             packetProcessor.Write(cachedWriter, packet);
             return cachedWriter;
+        }
+
+        public void SendResultToAll(int requestNr, float score) {
+            var writer = WritePacket<EvaluatePoseResponsePacket>(new EvaluatePoseResponsePacket() {
+                RequestId = requestNr,
+                Score = score
+            });
+            netManager.SendToAll(writer, DeliveryMethod.ReliableOrdered);
+            Debug.Log("Sent packet with score " + score);
         }
 
         void INetEventListener.OnPeerConnected(NetPeer peer) {

@@ -182,27 +182,27 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4797641432267646820, guid: ae9c5b47ea228ca46949c148b1407c15, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.40101
+      value: 0.23562145
       objectReference: {fileID: 0}
     - target: {fileID: 4797641432267646820, guid: ae9c5b47ea228ca46949c148b1407c15, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.40101
+      value: 0.23562145
       objectReference: {fileID: 0}
     - target: {fileID: 4797641432267646820, guid: ae9c5b47ea228ca46949c148b1407c15, type: 3}
       propertyPath: m_LocalScale.z
-      value: 0.40101
+      value: 0.23562145
       objectReference: {fileID: 0}
     - target: {fileID: 4797641432267646820, guid: ae9c5b47ea228ca46949c148b1407c15, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 1.063
+      value: 0.546
       objectReference: {fileID: 0}
     - target: {fileID: 4797641432267646820, guid: ae9c5b47ea228ca46949c148b1407c15, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.58799994
+      value: 0.083387
       objectReference: {fileID: 0}
     - target: {fileID: 4797641432267646820, guid: ae9c5b47ea228ca46949c148b1407c15, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 3.574
+      value: 3.213
       objectReference: {fileID: 0}
     - target: {fileID: 4797641432267646820, guid: ae9c5b47ea228ca46949c148b1407c15, type: 3}
       propertyPath: m_LocalRotation.w
@@ -3754,7 +3754,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6095995517130618831, guid: e3457e3674e573246aa5f448724cdb51, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -1.81
+      value: -1.304
       objectReference: {fileID: 0}
     - target: {fileID: 6095995517130618831, guid: e3457e3674e573246aa5f448724cdb51, type: 3}
       propertyPath: m_LocalPosition.z
@@ -4783,7 +4783,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   joined: 0
-  fake: 1
+  fake: 0
   ClientTick: 0
 --- !u!4 &859455357
 Transform:
@@ -6178,7 +6178,6 @@ GameObject:
   - component: {fileID: 1044693944}
   - component: {fileID: 1044693949}
   - component: {fileID: 1044693948}
-  - component: {fileID: 1044693947}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -6251,29 +6250,6 @@ Transform:
   m_Father: {fileID: 1824804232}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1044693947
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1044693943}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bf98dd1206224111a38765365e98e207, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  lockCursorWhenFocusLocked: 1
-  setCursorInvisibleWhenFocusLocked: 0
-  maxGazeCollisionDistance: 10
-  raycastLayerMasks:
-  - serializedVersion: 2
-    m_Bits: 4294967291
-  stabilizer:
-    storedStabilitySamples: 60
-  gazeTransform: {fileID: 0}
-  minHeadVelocityThreshold: 0.5
-  maxHeadVelocityThreshold: 2
 --- !u!114 &1044693948
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6597,7 +6573,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 83d9acc7968244a8886f3af591305bcb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  activeProfile: {fileID: 11400000, guid: 7e7c962b9eb9dfa44993d5b2f2576752, type: 2}
+  activeProfile: {fileID: 11400000, guid: 58bc249842637d744912770ed6bcf08e, type: 2}
 --- !u!4 &1108196837
 Transform:
   m_ObjectHideFlags: 0
@@ -7975,15 +7951,15 @@ MonoBehaviour:
   smoothing: 1
   lifetime: 0
   referenceDirection: 1
-  minDistance: 0.3
-  maxDistance: 0.6
+  minDistance: 0.5
+  maxDistance: 0.7
   minViewDegrees: 0
   maxViewDegrees: 20
   aspectV: 1
   ignoreAngleClamp: 0
   ignoreDistanceClamp: 0
   useFixedVerticalPosition: 1
-  fixedVerticalPosition: -0.15
+  fixedVerticalPosition: -0.25
   orientToReferenceDirection: 1
 --- !u!114 &1722028337
 MonoBehaviour:
