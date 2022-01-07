@@ -1,4 +1,8 @@
 # ARDanceGame
+<p align="center">
+<img width=413 src="Media/gameplay.jpg">
+<img width=330 src="Media/menu.jpg">
+</p>
 
 ## Requirements
 A Computer with a powerful nvidia GPU (GTX 980 and above), a Microsoft Azure Kinect and preferably a Microsoft Hololens 2. Although it can be run fully in the Unity emulator.
