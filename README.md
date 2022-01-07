@@ -31,3 +31,5 @@ The game will also work without a server. The server status bar will then report
 ## Troubleshooting
 ### Server
 The Azure Kinect Body Tracking implementation is very fragile and suffers from latency and initialization issues under certain conditions, eg. [1682](https://github.com/microsoft/Azure-Kinect-Sensor-SDK/issues/1682). This means that the server is sometimes hard to get running. We did our best to increase the chances of a successful launch, but can not guarantee it. The server is correctly running as soon as the Unity output shows a hologram with the correctly tracked output of the kinect. If no hologram is visible or the hologram is T-Posing, restart the application until it works. Switching USB ports can also help. It may also help to try out a built version, or the in Editor version. Switching Driver Versions has also shown some effect.
+
+The procedure with the highest success rate is: Unplug the Kinect from the computer. Launch the server and wait until the logs are shown on screen. Then plug in the Kinect and wait for about 5 seconds until the server has found and startet the camera and tracker.
