@@ -1,6 +1,7 @@
 using Communiction.Server;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace PoseTeacher {
 
@@ -26,7 +27,7 @@ namespace PoseTeacher {
         private DanceData[] danceData;
         private bool assigned;
 
-        private List<(int trackId, int goalId, GoalType type, float startTime, int requestId, List<float> scores)> goalList = 
+        private List<(int trackId, int goalId, GoalType type, float startTime, int requestId, List<float> scores)> goalList =
             new List<(int trackId, int goalId, GoalType type, float startTime, int requestId, List<float> scores)>();
 
         public void Awake() {
@@ -43,7 +44,18 @@ namespace PoseTeacher {
                 danceData[i] = DancePerformances[i].danceData.LoadDanceDataFromScriptableObject();
             }
 
-            selfPoseInputGetter = new KinectPoseGetter();
+            try {
+                selfPoseInputGetter = new KinectPoseGetter();
+            } catch (System.Exception e) {
+                Debug.Log("Error when searching for kinect, Reloading in 3 Seconds");
+                selfPoseInputGetter = null;
+                Invoke("reloadScene", 3f);
+                throw e;
+            }
+        }
+
+        private void reloadScene() {
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
 
         public void Update() {
@@ -52,87 +64,94 @@ namespace PoseTeacher {
                 AddGoal(debugValues[0], debugValues[1], debugValues[2]);
             }
 
+            // No kinect connected
+            if (selfPoseInputGetter == null) {
+                return;
+            }
+
             currentSelfPose = selfPoseInputGetter.GetNextPose();
 
-            defaultTeacher.SetPose(currentSelfPose);
-            if(!assigned && Time.time > 3f) {
-                //Debug.Log("Assigned Goal");
-                assigned = true;
-                goal = currentSelfPose;
-                if (goalTeacher.gameObject.activeInHierarchy) {
-                    goalTeacher.SetPose(goal);
-                }
-            }
-
-            if(assigned) {
-                //Debug.Log("Score = " + quaternionDistanceScore(DancePose.fromPoseData(goal), currentSelfPose));
-            }
-
-            for (int i = 0; i < goalList.Count; i++) {
-                var curGoal = goalList[i];
-                var curDD = danceData[curGoal.trackId];
-                var curPf = DancePerformances[curGoal.trackId];
-                var goalStartTime = curPf.goalStartTimestamps[curGoal.goalId];
-                if (curGoal.type == GoalType.POSE) {
-                    // if after starttime-window
-                    if (Time.time > curGoal.startTime - poseSurrounding) {
-                        // for -windows to +window, check if pose is held anytime between
-                        DancePose actual = curDD.poses[getClosestId(curDD, goalStartTime)];
-                        curGoal.scores.Add(quaternionDistanceScore(actual, currentSelfPose));
+            if (currentSelfPose != null) {
+                defaultTeacher.SetPose(currentSelfPose);
+                if (!assigned && Time.time > 3f) {
+                    //Debug.Log("Assigned Goal");
+                    assigned = true;
+                    goal = currentSelfPose;
+                    if (goalTeacher.gameObject.activeInHierarchy) {
+                        goalTeacher.SetPose(goal);
                     }
-                } else {
-                    // if after starttime
-                    if (Time.time > curGoal.startTime) {
-                        // for start to end, check if motion within +- window is held
-                        float startingTime = goalStartTime - MotionWindow + (Time.time - curGoal.startTime);
-                        float minWindowScore = 1000f;
-                        int index = getClosestId(curDD, startingTime);
-                        while(index < curDD.poses.Count) {
-                            if(curDD.poses[index].timestamp > startingTime + 2 * MotionWindow) {
-                                break;
+                }
+
+                if (assigned) {
+                    //Debug.Log("Score = " + quaternionDistanceScore(DancePose.fromPoseData(goal), currentSelfPose));
+                }
+
+                for (int i = 0; i < goalList.Count; i++) {
+                    var curGoal = goalList[i];
+                    var curDD = danceData[curGoal.trackId];
+                    var curPf = DancePerformances[curGoal.trackId];
+                    var goalStartTime = curPf.goalStartTimestamps[curGoal.goalId];
+                    if (curGoal.type == GoalType.POSE) {
+                        // if after starttime-window
+                        if (Time.time > curGoal.startTime - poseSurrounding) {
+                            // for -windows to +window, check if pose is held anytime between
+                            DancePose actual = curDD.poses[getClosestId(curDD, goalStartTime)];
+                            curGoal.scores.Add(quaternionDistanceScore(actual, currentSelfPose));
+                        }
+                    } else {
+                        // if after starttime
+                        if (Time.time > curGoal.startTime) {
+                            // for start to end, check if motion within +- window is held
+                            float startingTime = goalStartTime - MotionWindow + (Time.time - curGoal.startTime);
+                            float minWindowScore = 1000f;
+                            int index = getClosestId(curDD, startingTime);
+                            while (index < curDD.poses.Count) {
+                                if (curDD.poses[index].timestamp > startingTime + 2 * MotionWindow) {
+                                    break;
+                                }
+                                // take min of iterated poses
+                                minWindowScore = Mathf.Min(minWindowScore, quaternionDistanceScore(curDD.poses[index], currentSelfPose));
+                                index++;
                             }
-                            // take min of iterated poses
-                            minWindowScore = Mathf.Min(minWindowScore, quaternionDistanceScore(curDD.poses[index], currentSelfPose));
-                            index++;
+                            curGoal.scores.Add(minWindowScore);
                         }
-                        curGoal.scores.Add(minWindowScore);
                     }
                 }
-            }
 
-            // loop through goals to see which should be finished
-            for (int i = 0; i < goalList.Count; i++) {
-                var curGoal = goalList[i];
-                var curPf = DancePerformances[curGoal.trackId];
-                if (curGoal.type == GoalType.POSE) {
-                    // if after starttime + window
-                    if (Time.time > curGoal.startTime + poseSurrounding) {
-                        // calculate score and send
-                        // take min of scores for pose
-                        float minScore = 1000f;
-                        for (int j = 0; j < curGoal.scores.Count; j++) {
-                            minScore = Mathf.Min(minScore, curGoal.scores[j]);
+                // loop through goals to see which should be finished
+                for (int i = 0; i < goalList.Count; i++) {
+                    var curGoal = goalList[i];
+                    var curPf = DancePerformances[curGoal.trackId];
+                    if (curGoal.type == GoalType.POSE) {
+                        // if after starttime + window
+                        if (Time.time > curGoal.startTime + poseSurrounding) {
+                            // calculate score and send
+                            // take min of scores for pose
+                            float minScore = 1000f;
+                            for (int j = 0; j < curGoal.scores.Count; j++) {
+                                minScore = Mathf.Min(minScore, curGoal.scores[j]);
+                            }
+                            returnGoal(curGoal.requestId, minScore);
+                            // remove goal from list
+                            goalList.RemoveAt(i);
+                            // reset loop
+                            i = -1;
                         }
-                        returnGoal(curGoal.requestId, minScore);
-                        // remove goal from list
-                        goalList.RemoveAt(i);
-                        // reset loop
-                        i = -1;
-                    }
-                } else {
-                    // if after end time
-                    if (Time.time > curGoal.startTime + curPf.goalDuration[curGoal.goalId]) {
-                        // calculate score and send
-                        // take avg of scores for motion
-                        float score = 0f;
-                        for (int j = 0; j < curGoal.scores.Count; j++) {
-                            score += curGoal.scores[j];
+                    } else {
+                        // if after end time
+                        if (Time.time > curGoal.startTime + curPf.goalDuration[curGoal.goalId]) {
+                            // calculate score and send
+                            // take avg of scores for motion
+                            float score = 0f;
+                            for (int j = 0; j < curGoal.scores.Count; j++) {
+                                score += curGoal.scores[j];
+                            }
+                            returnGoal(curGoal.requestId, score / curGoal.scores.Count);
+                            // remove goal from list
+                            goalList.RemoveAt(i);
+                            // reset loop
+                            i = -1;
                         }
-                        returnGoal(curGoal.requestId, score / curGoal.scores.Count);
-                        // remove goal from list
-                        goalList.RemoveAt(i);
-                        // reset loop
-                        i = -1;
                     }
                 }
             }
@@ -151,7 +170,9 @@ namespace PoseTeacher {
         }
 
         public void OnApplicationQuit() {
-            selfPoseInputGetter.Dispose();
+            if (selfPoseInputGetter != null) {
+                selfPoseInputGetter.Dispose();
+            }
         }
 
         public void AddGoal(int trackId, int goalId, int requestNr) {
@@ -164,12 +185,12 @@ namespace PoseTeacher {
         }
 
         private void returnGoal(int requestNr, float score) {
-            Server.Instance.SendResultToAll(requestNr, Mathf.Max(0, 1-score));
+            Server.Instance.SendResultToAll(requestNr, Mathf.Max(0, 1 - score));
         }
 
         private int getClosestId(DanceData danceData, float goalTime) {
             for (int i = 0; i < danceData.poses.Count; i++) {
-                if(danceData.poses[i].timestamp > goalTime) {
+                if (danceData.poses[i].timestamp > goalTime) {
                     return i;
                 }
             }

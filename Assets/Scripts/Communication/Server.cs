@@ -36,8 +36,6 @@ namespace Communiction.Server {
                 Destroy(this);
             } else {
                 Instance = this;
-
-                DontDestroyOnLoad(gameObject);
                 packetProcessor = new NetPacketProcessor();
                 //serverPlayerManager = new ServerPlayerManager(this);
                 //serverEntityManager = new ServerEntityManager(this);
