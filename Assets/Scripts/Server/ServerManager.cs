@@ -6,6 +6,9 @@ namespace PoseTeacher {
 
     public class ServerManager : MonoBehaviour {
         public static ServerManager Instance;
+        // Scoring windows around the goals
+        public static float poseSurrounding = 0.75f;
+        public static float MotionWindow = 0.5f;
 
         PoseGetter selfPoseInputGetter;
 
@@ -17,9 +20,6 @@ namespace PoseTeacher {
         public PoseData goal;
         public AvatarDisplay goalTeacher;
 
-        // Scoring windows around the goals
-        public static float poseSurrounding = 0.75f;
-        public static float MotionWindow = 0.5f;
         public bool debug = false;
         public int[] debugValues = { 0, 0, 0 };
 

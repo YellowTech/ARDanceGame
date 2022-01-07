@@ -16,6 +16,8 @@ namespace PoseTeacher {
         public DancePerformanceScriptableObject[] performances;
         public AvatarDisplay display;
         public ScoreDisplayJD scoreDisplay;
+        public MonoBehaviour[] toDisableOnPlay;
+        public PreviewManager previews;
 
         public float songTime => audioSource?.time ?? 0;
         public bool paused => !audioSource.isPlaying;
@@ -74,6 +76,12 @@ namespace PoseTeacher {
                         sendGoalRequest(currentGoal++);
                     }
                 }
+            } else {
+                // if finished
+                if (currentGoal >= goals.Count -2 && !previews.gameObject.activeInHierarchy) {
+                    Debug.Log("reenable UI");
+                    previews.gameObject.SetActive(true);
+                }
             }
         }
 
@@ -91,8 +99,20 @@ namespace PoseTeacher {
         public void RestartSong() {
             audioSource.time = 0;
             audioSource.PlayDelayed(0.5f);
+            currentPoseIndex = 0;
             currentGoal = 0;
             currentScore = 0;
+            scoreDisplay.reset();
+
+            // if no server found, activate fake server
+            if (!Client.Connected) {
+                Debug.Log("activating fake server");
+                Client.Instance.fake = true;
+            }
+
+            foreach (var item in toDisableOnPlay) {
+                item.enabled = false;
+            }
         }
 
         public void ScoreResponse(int requestId, float score) {

@@ -82,6 +82,11 @@ namespace PoseTeacher {
             scoreCounterAnimator.Play("ScoreNumberAdding", -1, 0f);
             currentScore += scoreToAdd;
         }
+
+        public void reset() {
+            currentScore = 0;
+            animatedScore = 0;
+        }
     }
 
 
